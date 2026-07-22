@@ -33,25 +33,40 @@ class BaseController:
             raise KeyError(f"Service '{name}' tidak terdaftar pada aplikasi.")
         return service
 
-    def json_response(self, data: Any, status_code: int = 200) -> Response:
+    def json_response(self, data: Any, status_code: int = 200, message: str = None) -> Response:
         """
         Membentuk respon JSON terstandar untuk API.
+
+        Struktur konsisten: { "success": true, "message": "...", "data": ... }
 
         Args:
             data: Data payload (dict, list, string, atau boolean).
             status_code: HTTP Status Code.
+            message: Keterangan respon (opsional).
 
         Returns:
             Response: Respon Flask JSON.
         """
-        # Bungkus data ke bentuk standar jika data adalah list, atau dict tanpa key success
-        if isinstance(data, list) or (isinstance(data, dict) and "success" not in data):
-            response_data = {
-                "success": status_code < 400,
-                "data": data
-            }
-        else:
-            response_data = data
+        msg = message
+        payload_data = data
+
+        if isinstance(data, dict):
+            if "message" in data:
+                if not msg:
+                    msg = data["message"]
+                if len(data) > 1:
+                    payload_data = {k: v for k, v in data.items() if k != "message"}
+                else:
+                    payload_data = {}
+
+        if not msg:
+            msg = "Operasi berhasil." if status_code < 400 else "Operasi gagal."
+
+        response_data = {
+            "success": status_code < 400,
+            "message": msg,
+            "data": payload_data
+        }
 
         return jsonify(response_data), status_code
 
@@ -70,6 +85,7 @@ class BaseController:
         response_data = {
             "success": False,
             "message": message,
+            "data": {},
             "details": details or {}
         }
         return jsonify(response_data), status_code

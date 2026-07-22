@@ -130,13 +130,15 @@
         loadBapData();
 
         function loadBapData() {
-            fetch("{{ url_for('bap.get_bap_data') }}")
+            console.log("loadBapData");
+            fetch("{{ url_for('bap.get_bap_data') }}?_t=" + Date.now(), { cache: "no-store" })
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data) {
-                        allBapData = res.data.items;
+                        const items = res.data.items || (Array.isArray(res.data) ? res.data : []);
+                        allBapData = items;
                         renderTable(allBapData);
-                        updateProgressBar(res.data.total_rps, res.data.total_bap);
+                        updateProgressBar(res.data.total_rps || 0, res.data.total_bap || items.length);
                     } else {
                         bapTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">Gagal memuat data: ${res.message}</td></tr>`;
                     }
@@ -148,8 +150,9 @@
 
         // Render Table
         function renderTable(items) {
+            console.log("renderTable");
             bapTableBody.innerHTML = "";
-            if (items.length === 0) {
+            if (!items || items.length === 0) {
                 bapTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Belum ada realisasi tatap muka (BAP) yang diinputkan.</td></tr>';
                 return;
             }
@@ -214,7 +217,6 @@
                         fieldBapId.value = item.bap_id;
                         fieldMeetingNumber.value = item.meeting_number;
                         
-                        // Formatting date untuk input type="date" (YYYY-MM-DD)
                         if (item.meeting_date) {
                             const d = new Date(item.meeting_date);
                             const year = d.getFullYear();
@@ -226,7 +228,7 @@
                         fieldMaterialTaught.value = item.material_taught;
                         
                         bapModalLabel.textContent = "Ubah Realisasi BAP";
-                        meetingNumberGroup.classList.add("d-none"); // Sembunyikan nomor pertemuan agar tetap konsisten
+                        meetingNumberGroup.classList.add("d-none");
                         fieldMeetingNumber.required = false;
                         bapModal.show();
                     }
@@ -236,18 +238,21 @@
             document.querySelectorAll(".btn-delete").forEach(btn => {
                 btn.addEventListener("click", function () {
                     const id = this.getAttribute("data-id");
-                    if (confirm("Apakah Anda yakin ingin menghapus data realisasi kuliah ini?")) {
-                        fetch(`/api/bap/delete/${id}`, { method: "DELETE" })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    loadBapData();
-                                } else {
-                                    alert("Gagal menghapus: " + data.message);
-                                }
-                            })
-                            .catch(() => alert("Koneksi gagal."));
-                    }
+                    showConfirm("Apakah Anda yakin ingin menghapus data realisasi kuliah ini? Tindakan ini tidak dapat dibatalkan.", "Ya, Hapus", "Batal")
+                        .then(confirmed => {
+                            if (!confirmed) return;
+                            fetch(`/api/bap/delete/${id}`, { method: "DELETE" })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        showSuccess(data.message || "Data realisasi BAP berhasil dihapus.");
+                                        loadBapData();
+                                    } else {
+                                        showError("Gagal menghapus: " + (data.message || "Terjadi kesalahan."));
+                                    }
+                                })
+                                .catch(() => showError("Koneksi gagal. Periksa jaringan Anda."));
+                        });
                 });
             });
         }
@@ -284,13 +289,16 @@
             .then(data => {
                 if (data.success) {
                     bapModal.hide();
+                    bapForm.reset();
+                    fieldBapId.value = "";
+                    fieldMeetingDate.value = today;
+                    showSuccess(data.message || "Data BAP berhasil disimpan.");
                     loadBapData();
                 } else {
-                    // Tampilkan pesan error bisnis (misal: duplikat pertemuan / melampaui silabus)
-                    alert("Validasi Gagal: " + data.message);
+                    showWarning(data.message || "Validasi gagal. Periksa data yang dimasukkan.");
                 }
             })
-            .catch(() => alert("Kesalahan koneksi internet saat menyimpan."));
+            .catch(() => showError("Kesalahan koneksi internet saat menyimpan."));
         });
 
         // Helper escape HTML

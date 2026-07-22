@@ -48,7 +48,7 @@ def create_app(settings: AppSettings = None) -> Flask:
     Returns:
         Flask: Instansi aplikasi Flask yang siap dijalankan.
     """
-    app = Flask(_name_, template_folder="templates", static_folder="static")
+    app = Flask(__name__, template_folder="templates", static_folder="static")
     
     # 1. Load Configurations
     if settings is None:

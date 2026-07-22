@@ -70,7 +70,9 @@ class FileUploadHandler:
 
         # 1. Validasi Ekstensi
         _, ext = os.path.splitext(file_path)
-        if ext.lower() not in ALLOWED_FILE_EXTENSIONS:
+        ext_clean = ext.lower().lstrip(".")
+        allowed_clean = {e.lower().lstrip(".") for e in ALLOWED_FILE_EXTENSIONS}
+        if ext_clean not in allowed_clean:
             logger.warning(f"File ditolak. Ekstensi tidak diizinkan: {ext}")
             raise FileValidationError(
                 f"Tipe file tidak didukung. Hanya menerima file dengan format: {', '.join(ALLOWED_FILE_EXTENSIONS)}"

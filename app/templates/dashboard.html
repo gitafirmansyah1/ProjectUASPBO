@@ -132,7 +132,7 @@
 
 {% block extra_js %}
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/chart.js') }}?v=1.0.5"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const ctx = document.getElementById('complianceChart').getContext('2d');

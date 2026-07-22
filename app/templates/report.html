@@ -201,8 +201,8 @@
                     }
 
                     items.forEach(item => {
-                        // Formatting date
-                        let dateStr = item.created_at || item.upload_date;
+                        // Formatting date – gunakan 'uploaded_at' sesuai schema tabel upload_history
+                        let dateStr = item.uploaded_at;
                         if (dateStr) {
                             const d = new Date(dateStr);
                             dateStr = d.toLocaleDateString("id-ID") + " " + String(d.getHours()).padStart(2, '0') + ":" + String(d.getMinutes()).padStart(2, '0');

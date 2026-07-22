@@ -213,18 +213,21 @@
             document.querySelectorAll(".btn-delete").forEach(btn => {
                 btn.addEventListener("click", function () {
                     const id = this.getAttribute("data-id");
-                    if (confirm("Apakah Anda yakin ingin menghapus data rencana pertemuan ini secara permanen?")) {
-                        fetch(`/api/rps/delete/${id}`, { method: "DELETE" })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    loadRpsData();
-                                } else {
-                                    alert("Gagal menghapus: " + data.message);
-                                }
-                            })
-                            .catch(() => alert("Koneksi gagal."));
-                    }
+                    showConfirm("Apakah Anda yakin ingin menghapus data rencana pertemuan ini secara permanen?", "Ya, Hapus", "Batal")
+                        .then(confirmed => {
+                            if (!confirmed) return;
+                            fetch(`/api/rps/delete/${id}`, { method: "DELETE" })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        showSuccess("Pertemuan RPS berhasil dihapus.");
+                                        loadRpsData();
+                                    } else {
+                                        showError("Gagal menghapus: " + (data.message || "Terjadi kesalahan."));
+                                    }
+                                })
+                                .catch(() => showError("Koneksi gagal. Periksa jaringan Anda."));
+                        });
                 });
             });
         }
@@ -261,12 +264,13 @@
             .then(data => {
                 if (data.success) {
                     rpsModal.hide();
+                    showSuccess(data.message || "Data RPS berhasil disimpan.");
                     loadRpsData();
                 } else {
-                    alert("Gagal menyimpan: " + data.message);
+                    showWarning(data.message || "Gagal menyimpan. Periksa data yang dimasukkan.");
                 }
             })
-            .catch(() => alert("Kesalahan koneksi internet."));
+            .catch(() => showError("Kesalahan koneksi internet."));
         });
 
         // Helper escape HTML

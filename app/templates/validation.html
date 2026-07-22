@@ -93,11 +93,12 @@
         loadValidationData();
 
         function loadValidationData() {
-            fetch("{{ url_for('validation.get_validation_data') }}")
+            fetch("{{ url_for('validation.get_validation_data') }}?_t=" + Date.now(), { cache: "no-store" })
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data) {
-                        renderTable(res.data);
+                        const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+                        renderTable(items);
                     } else {
                         validationTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Gagal memuat data: ${res.message}</td></tr>`;
                     }
@@ -110,7 +111,7 @@
         // Render Table dengan warna baris berdasarkan status
         function renderTable(items) {
             validationTableBody.innerHTML = "";
-            if (items.length === 0) {
+            if (!items || items.length === 0) {
                 validationTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada data pemeriksaan validasi perkuliahan. Silakan klik tombol "Jalankan Validasi" di atas.</td></tr>';
                 return;
             }
@@ -160,31 +161,37 @@
             }
         }
 
-        // Jalankan Validasi via AJAX
+        // Jalankan Validasi via AJAX dengan .finally() agar loading terjamin selalu ditutup
         btnRunValidation.addEventListener("click", function () {
             btnRunValidation.disabled = true;
             loadingContainer.classList.remove("d-none");
             statsContainer.classList.add("d-none");
+            if (typeof showLoading === "function") showLoading("Menganalisis kesesuaian materi...");
 
-            fetch("{{ url_for('validation.run_validation') }}", {
-                method: "POST"
-            })
-            .then(res => res.json())
-            .then(data => {
-                btnRunValidation.disabled = false;
-                loadingContainer.classList.add("d-none");
-
-                if (data.success) {
-                    loadValidationData();
-                } else {
-                    alert("Gagal menjalankan validasi: " + data.message);
-                }
-            })
-            .catch(() => {
-                btnRunValidation.disabled = false;
-                loadingContainer.classList.add("d-none");
-                alert("Kesalahan koneksi internet.");
-            });
+            fetch("{{ url_for('validation.run_validation') }}", { method: "POST" })
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(errData => { throw new Error(errData.message || "Status " + res.status); })
+                            .catch(e => { throw new Error("Kesalahan Server: Status " + res.status); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showSuccess(data.message || "Validasi selesai. Hasil telah diperbarui.");
+                        loadValidationData();
+                    } else {
+                        showError("Gagal menjalankan validasi: " + (data.message || "Terjadi kesalahan pada sistem."));
+                    }
+                })
+                .catch(err => {
+                    showError(err.message || "Kesalahan koneksi internet. Periksa jaringan Anda.");
+                })
+                .finally(() => {
+                    if (typeof hideLoading === "function") hideLoading();
+                    btnRunValidation.disabled = false;
+                    loadingContainer.classList.add("d-none");
+                });
         });
 
         // Helper escape HTML

@@ -7,7 +7,7 @@ Modul ini mendefinisikan rute HTTP untuk halaman Dashboard Utama.
 from flask import Blueprint, render_template
 from app.controllers.dashboard_controller import DashboardController
 
-dashboard_bp = Blueprint("dashboard", _name_)
+dashboard_bp = Blueprint("dashboard", __name__)
 controller = DashboardController()
 
 

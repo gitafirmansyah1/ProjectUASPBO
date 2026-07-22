@@ -186,3 +186,5 @@ class TextCleaner:
         except Exception as e:
             logger.exception(f"Gagal melakukan text cleaning: {e}")
             raise TextCleaningError(f"Kesalahan internal pembersihan teks: {e}")
+
+    clean_text = clean
