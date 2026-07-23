@@ -143,7 +143,8 @@ class UploadController(BaseController):
                     meeting_number=int(i["meeting_number"]),
                     topic=i["topic"],
                     sub_topic=i.get("sub_topic", ""),
-                    source_file=source_file
+                    source_file=source_file,
+                    mata_kuliah=i.get("mata_kuliah", "Belum Terdeteksi")
                 )
             )
 

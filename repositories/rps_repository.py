@@ -30,6 +30,27 @@ class RPSRepository:
             db: Instance koneksi database.
         """
         self._db: DatabaseConnection = db
+        self._ensure_mata_kuliah_column()
+
+    def _ensure_mata_kuliah_column(self) -> None:
+        """
+        Memastikan kolom mata_kuliah tersedia di tabel rps (Auto Migration).
+        """
+        try:
+            query = """
+            SELECT COUNT(*) as cnt 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+              AND TABLE_NAME = 'rps' 
+              AND COLUMN_NAME = 'mata_kuliah';
+            """
+            res = self._db.execute_query(query)
+            if res and res[0].get("cnt", 0) == 0:
+                alter_query = "ALTER TABLE rps ADD COLUMN mata_kuliah VARCHAR(255) DEFAULT 'Belum Terdeteksi';"
+                self._db.execute_non_query(alter_query)
+                logger.info("Kolom 'mata_kuliah' berhasil ditambahkan ke tabel 'rps'.")
+        except Exception as e:
+            logger.warning(f"Memeriksa kolom mata_kuliah: {e}")
 
     def create(self, rps: RPS) -> int:
         """
@@ -43,11 +64,12 @@ class RPSRepository:
         """
         query = """
         -- Menyimpan data RPS pertemuan baru
-        INSERT INTO rps (meeting_number, topic, sub_topic, cleaned_topic, source_file)
-        VALUES (%s, %s, %s, %s, %s);
+        INSERT INTO rps (meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file)
+        VALUES (%s, %s, %s, %s, %s, %s);
         """
         params = (
             rps.meeting_number,
+            rps.mata_kuliah,
             rps.topic,
             rps.sub_topic,
             rps.cleaned_topic,
@@ -75,11 +97,12 @@ class RPSRepository:
         for rps in rps_list:
             query = """
             -- Menyimpan data RPS pertemuan baru (Batch)
-            INSERT INTO rps (meeting_number, topic, sub_topic, cleaned_topic, source_file)
-            VALUES (%s, %s, %s, %s, %s);
+            INSERT INTO rps (meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file)
+            VALUES (%s, %s, %s, %s, %s, %s);
             """
             params = (
                 rps.meeting_number,
+                rps.mata_kuliah,
                 rps.topic,
                 rps.sub_topic,
                 rps.cleaned_topic,
@@ -114,11 +137,12 @@ class RPSRepository:
         # 2. Sisipkan seluruh data RPS baru
         for rps in rps_list:
             insert_rps_query = """
-            INSERT INTO rps (meeting_number, topic, sub_topic, cleaned_topic, source_file)
-            VALUES (%s, %s, %s, %s, %s);
+            INSERT INTO rps (meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file)
+            VALUES (%s, %s, %s, %s, %s, %s);
             """
             params_rps = (
                 rps.meeting_number,
+                rps.mata_kuliah,
                 rps.topic,
                 rps.sub_topic,
                 rps.cleaned_topic,
@@ -154,7 +178,7 @@ class RPSRepository:
         """
         query = """
         -- Mengambil data RPS berdasarkan rps_id
-        SELECT rps_id, meeting_number, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
+        SELECT rps_id, meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
         FROM rps
         WHERE rps_id = %s;
         """
@@ -173,7 +197,7 @@ class RPSRepository:
         """
         query = """
         -- Mengambil seluruh data RPS terurut meeting_number
-        SELECT rps_id, meeting_number, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
+        SELECT rps_id, meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
         FROM rps
         ORDER BY meeting_number ASC;
         """
@@ -193,7 +217,7 @@ class RPSRepository:
         """
         query = """
         -- Mengambil data RPS berdasarkan meeting_number
-        SELECT rps_id, meeting_number, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
+        SELECT rps_id, meeting_number, mata_kuliah, topic, sub_topic, cleaned_topic, source_file, created_at, updated_at
         FROM rps
         WHERE meeting_number = %s;
         """
@@ -220,11 +244,12 @@ class RPSRepository:
         query = """
         -- Memperbarui data RPS berdasarkan rps_id
         UPDATE rps
-        SET meeting_number = %s, topic = %s, sub_topic = %s, cleaned_topic = %s, source_file = %s
+        SET meeting_number = %s, mata_kuliah = %s, topic = %s, sub_topic = %s, cleaned_topic = %s, source_file = %s
         WHERE rps_id = %s;
         """
         params = (
             rps.meeting_number,
+            rps.mata_kuliah,
             rps.topic,
             rps.sub_topic,
             rps.cleaned_topic,

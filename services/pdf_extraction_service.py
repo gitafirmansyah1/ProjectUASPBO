@@ -68,14 +68,14 @@ class PDFExtractionService:
         reader = self._reader or PDFReader(file_path)
         reader.file_path = file_path
 
+        parsed_data = None
+        tables = None
+
         # 1. Coba ekstraksi menggunakan metode tabel (pdfplumber)
         try:
             tables = reader.extract_tables()
             if tables:
                 parsed_data = self._parse_table_data(tables)
-                if parsed_data:
-                    self._log_extraction_summary(parsed_data)
-                    return parsed_data
         except (PDFTableNotFoundError, PDFExtractionError) as e:
             logger.warning(f"Ekstraksi tabel gagal atau tidak ditemukan. Alasan: {e}. Mengaktifkan fallback ke teks mentah...")
             self.handle_extraction_failure({"file_path": file_path, "reason": str(e)})
@@ -84,31 +84,43 @@ class PDFExtractionService:
             self.handle_extraction_failure({"file_path": file_path, "reason": str(e)})
 
         # 2. Fallback: words + regex untuk PDF tanpa garis tabel.
-        try:
-            pages_words = reader.extract_words_by_page()
-            parsed_data = self._parse_words_data(pages_words)
-            if parsed_data:
-                self._log_extraction_summary(parsed_data)
-                return parsed_data
-        except Exception as e:
-            logger.warning(f"Fallback extract_words gagal. Alasan: {e}. Mengaktifkan fallback pypdf...")
+        if not parsed_data:
+            try:
+                pages_words = reader.extract_words_by_page()
+                parsed_data = self._parse_words_data(pages_words)
+            except Exception as e:
+                logger.warning(f"Fallback extract_words gagal. Alasan: {e}. Mengaktifkan fallback pypdf...")
 
         # 3. Fallback akhir: Ekstraksi teks biasa dan parsing regex (pypdf/pdfplumber text)
-        try:
-            raw_text = reader.extract_raw_text()
-            if raw_text:
-                parsed_data = self._parse_text_data(raw_text)
-                if parsed_data:
-                    self._log_extraction_summary(parsed_data)
-                    return parsed_data
-            
-            # Jika semua metode gagal mengembalikan data
+        if not parsed_data:
+            try:
+                raw_text = reader.extract_raw_text()
+                if raw_text:
+                    parsed_data = self._parse_text_data(raw_text)
+            except Exception as e:
+                logger.exception(f"Fallback ekstraksi teks mentah gagal: {e}")
+                raise PDFExtractionError(f"Gagal melakukan ekstraksi PDF: {e}")
+
+        if not parsed_data:
             raise PDFExtractionError(
                 "Gagal mengekstrak data terstruktur Pokok Bahasan dari PDF baik melalui tabel maupun teks."
             )
-        except Exception as e:
-            logger.exception(f"Fallback ekstraksi teks mentah gagal: {e}")
-            raise PDFExtractionError(f"Gagal melakukan ekstraksi PDF: {e}")
+
+        # Ekstrak nama mata kuliah dari dokumen PDF
+        raw_text_content = ""
+        try:
+            raw_text_content = reader.extract_raw_text()
+        except Exception:
+            pass
+
+        course_name = self._rps_parser.extract_mata_kuliah(raw_text_content, tables)
+        logger.info(f"Mata Kuliah terdeteksi: '{course_name}'")
+
+        for item in parsed_data:
+            item["mata_kuliah"] = course_name
+
+        self._log_extraction_summary(parsed_data)
+        return parsed_data
 
     def _parse_table_data(self, tables: List[List[List[str]]]) -> List[Dict[str, Any]]:
         """

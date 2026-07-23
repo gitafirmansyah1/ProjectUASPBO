@@ -178,3 +178,44 @@ class RPSParser:
             if re.search(rf"\b{roman}\b", text):
                 return number
         return None
+
+    def extract_mata_kuliah(self, raw_text: str, tables: Optional[List[List[List[str]]]] = None) -> str:
+        """
+        Mengekstrak nama mata kuliah dari isi dokumen PDF RPS.
+        Mencari dari struktur tabel identitas, label Mata Kuliah, atau fallback regex.
+        """
+        # Tier 1: Periksa dari struktur tabel identitas jika tersedia
+        if tables:
+            for table in tables[:2]:
+                for r_idx, row in enumerate(table):
+                    row_cells = [self.normalize_cell(c, keep_newline=False) for c in row]
+                    for c_idx, cell in enumerate(row_cells):
+                        cell_upper = cell.upper()
+                        if any(k in cell_upper for k in ["MATA KULIAH", "NAMA MATA KULIAH", "COURSE"]):
+                            # Periksa baris berikutnya di kolom yang sama atau awal baris
+                            for next_r in range(r_idx + 1, min(r_idx + 4, len(table))):
+                                candidate_row = [self.normalize_cell(c, keep_newline=False) for c in table[next_r]]
+                                for check_c in [c_idx, 0, 1]:
+                                    if check_c < len(candidate_row):
+                                        cand = candidate_row[check_c]
+                                        if cand and cand.upper() not in ["KODE MK", "BOBOT", "SEMESTER", "(SKS)", "WK-1 BID.AKADEMIK"] and not cand.startswith("WK-"):
+                                            cand_clean = re.sub(r"\s+[A-Z]{2,4}\s*\d+.*$", "", cand).strip()
+                                            if len(cand_clean) >= 3:
+                                                return cand_clean
+
+        # Tier 2: Key-value regex (misal: "Mata Kuliah : Pemrograman Java Lanjut")
+        m_kv = re.search(r"(?:MATA\s*KULIAH|Nama\s+Mata\s+Kuliah|Course)\s*[:\-]\s*([^\n\r]+)", raw_text or "", re.IGNORECASE)
+        if m_kv:
+            res = m_kv.group(1).strip()
+            if len(res) >= 3 and res.upper() not in ["KODE MK", "BOBOT", "SEMESTER"]:
+                return res
+
+        # Tier 3: Pattern header tabel dalam teks mentah
+        m_tbl = re.search(r"MATA\s*KULIAH[^\n]*\n+\s*([A-Za-z0-9\s\&\-\+]{3,60}?)(?=\s+[A-Z]{2,4}\s*\d+|\s+\d+\s+SKS|\s+\d+\s+\d+|\n)", raw_text or "", re.IGNORECASE)
+        if m_tbl:
+            res = m_tbl.group(1).strip()
+            if len(res) >= 3 and not res.upper().startswith("KODE"):
+                return res
+
+        # Fallback jika tidak terdeteksi
+        return "Belum Terdeteksi"

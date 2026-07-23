@@ -35,17 +35,16 @@
                 <table class="table table-hover align-middle" id="rpsTable">
                     <thead>
                         <tr>
-                            <th style="width: 120px;">Pertemuan</th>
+                            <th style="width: 140px;">Pertemuan</th>
+                            <th>Mata Kuliah</th>
                             <th>Topik Utama</th>
-                            <th>Sub Pokok Bahasan</th>
-                            <th>File Sumber</th>
                             <th style="width: 150px;" class="text-end">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="rpsTableBody">
                         <!-- Diisi via AJAX -->
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
+                            <td colspan="4" class="text-center py-4 text-muted">
                                 <i class="fa-solid fa-spinner fa-spin fs-4 mb-2 d-block"></i> Memuat data...
                             </td>
                         </tr>
@@ -126,11 +125,11 @@
                         allRpsData = res.data;
                         renderTable(allRpsData);
                     } else {
-                        rpsTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Gagal memuat data: ${res.message}</td></tr>`;
+                        rpsTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">Gagal memuat data: ${res.message}</td></tr>`;
                     }
                 })
                 .catch(err => {
-                    rpsTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Kesalahan koneksi internet.</td></tr>`;
+                    rpsTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-4">Kesalahan koneksi internet.</td></tr>`;
                 });
         }
 
@@ -138,7 +137,7 @@
         function renderTable(items) {
             rpsTableBody.innerHTML = "";
             if (items.length === 0) {
-                rpsTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data silabus rencana pembelajaran. Silakan unggah PDF RPS terlebih dahulu.</td></tr>';
+                rpsTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Tidak ada data silabus rencana pembelajaran. Silakan unggah PDF RPS terlebih dahulu.</td></tr>';
                 return;
             }
 
@@ -149,11 +148,8 @@
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td class="font-weight-bold text-primary">Pertemuan ${item.meeting_number}</td>
-                    <td class="font-weight-semibold text-dark">${escapeHtml(item.topic)}</td>
-                    <td class="text-muted" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        ${escapeHtml(item.sub_topic || "-")}
-                    </td>
-                    <td><span class="badge bg-light text-muted border">${escapeHtml(item.source_file)}</span></td>
+                    <td class="font-weight-semibold text-dark">${escapeHtml(item.mata_kuliah || "Belum Terdeteksi")}</td>
+                    <td class="text-dark">${escapeHtml(item.topic)}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-secondary me-1 btn-edit" data-id="${item.rps_id}">
                             <i class="fa-solid fa-pen-to-square"></i>
@@ -175,6 +171,7 @@
             const query = e.target.value.toLowerCase();
             const filtered = allRpsData.filter(item => 
                 item.topic.toLowerCase().includes(query) || 
+                (item.mata_kuliah && item.mata_kuliah.toLowerCase().includes(query)) ||
                 (item.sub_topic && item.sub_topic.toLowerCase().includes(query))
             );
             renderTable(filtered);

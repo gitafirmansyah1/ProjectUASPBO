@@ -66,11 +66,16 @@ class RPSController(BaseController):
 
             rps_manager: RPSManager = self.get_service("rps_manager")
             
+            # Ambil nama mata kuliah aktif dari data RPS terdaftar jika ada
+            existing_list = rps_manager.get_all_rps()
+            current_mk = existing_list[0].mata_kuliah if existing_list else payload.get("mata_kuliah", "Belum Terdeteksi")
+            
             new_rps = RPS(
                 meeting_number=meeting_number,
                 topic=topic,
                 sub_topic=sub_topic,
-                source_file="Input Manual"
+                source_file="Input Manual",
+                mata_kuliah=current_mk
             )
             
             # Simpan satu pertemuan manual menggunakan add_single_rps

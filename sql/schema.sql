@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS rps (
     rps_id          INT AUTO_INCREMENT PRIMARY KEY,
     -- Nomor pertemuan (1, 2, 3, ..., N)
     meeting_number  INT          NOT NULL,
+    -- Nama Mata Kuliah hasil ekstraksi RPS
+    mata_kuliah     VARCHAR(255) DEFAULT 'Belum Terdeteksi',
     -- Pokok bahasan/topik utama pertemuan
     topic           VARCHAR(255) NOT NULL,
     -- Sub pokok bahasan (opsional, bisa berisi detail topik)

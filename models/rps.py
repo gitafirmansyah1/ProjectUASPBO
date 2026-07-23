@@ -8,12 +8,14 @@ class RPS:
     sub_topic: str = ""
     cleaned_topic: str = ""
     source_file: str = ""
+    mata_kuliah: str = "Belum Terdeteksi"
     rps_id: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "rps_id": self.rps_id,
             "meeting_number": self.meeting_number,
+            "mata_kuliah": self.mata_kuliah,
             "topic": self.topic,
             "sub_topic": self.sub_topic,
             "cleaned_topic": self.cleaned_topic,
@@ -25,6 +27,7 @@ class RPS:
         return cls(
             rps_id=data.get("rps_id"),
             meeting_number=data.get("meeting_number", 0),
+            mata_kuliah=data.get("mata_kuliah", "Belum Terdeteksi"),
             topic=data.get("topic", ""),
             sub_topic=data.get("sub_topic", ""),
             cleaned_topic=data.get("cleaned_topic", ""),
